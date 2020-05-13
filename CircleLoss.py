@@ -9,10 +9,6 @@ class SparseCircleLoss(nn.Module):
         self.margin = m
         self.gamma = gamma
         self.soft_plus = nn.Softplus()
-        self.O_p = 1 + self.margin
-        self.O_n = -self.margin
-        self.Delta_p = 1 - self.margin
-        self.Delta_n = self.margin
         self.batch_size = batch_size
         self.class_num = class_num
         self.emdsize = emdsize
@@ -25,36 +21,30 @@ class SparseCircleLoss(nn.Module):
 
     def forward(self, input: Tensor, label: Tensor) -> Tensor:
         similarity_matrix = nn.functional.linear(nn.functional.normalize(input,p=2, dim=1, eps=1e-12), nn.functional.normalize(self.weight,p=2, dim=1, eps=1e-12))
+        
         if self.use_cuda:
             one_hot = torch.zeros(similarity_matrix.size(), device='cuda')
         else:
             one_hot = torch.zeros(similarity_matrix.size())
         one_hot.scatter_(1, label.view(-1, 1).long(), 1)
-
         one_hot = one_hot.type(dtype=torch.bool)
         #sp = torch.gather(similarity_matrix, dim=1, index=label.unsqueeze(1))
         sp = similarity_matrix[one_hot]
-
         mask = one_hot.logical_not()
         sn = similarity_matrix[mask]
 
-        sp = sp.view(self.batch_size, -1)
-        sn = sn.view(self.batch_size, -1)
+        ap = torch.clamp_min(-sp.detach() + 1 + self.margin, min=0.)
+        an = torch.clamp_min(sn.detach() + self.margin, min=0.)
 
-        alpha_p = self.relu(self.O_p - sp)
-        alpha_n = self.relu(sn - self.O_n)
+        delta_p = 1 - self.margin
+        delta_n = self.margin
 
-        r_sp_m = alpha_p * (sp - self.Delta_p)
-        r_sn_m = alpha_n * (sn - self.Delta_n)
+        logit_p = - ap * (sp - delta_p) * self.gamma
+        logit_n = an * (sn - delta_n) * self.gamma
 
-        _Z = torch.cat((r_sn_m, r_sp_m), 1)
-        _Z = _Z * self.gamma
+        loss = self.soft_plus(torch.logsumexp(logit_n, dim=0) + torch.logsumexp(logit_p, dim=0))
 
-        logZ = torch.logsumexp(_Z, dim=1, keepdims=True)
-
-        loss =  -r_sp_m * self.gamma + logZ
-
-        return loss.mean()
+        return loss
         
         
         
