@@ -33,6 +33,9 @@ class SparseCircleLoss(nn.Module):
         mask = one_hot.logical_not()
         sn = similarity_matrix[mask]
 
+        sp = sp.view(self.batch_size, -1)
+        sn = sn.view(self.batch_size, -1)
+
         ap = torch.clamp_min(-sp.detach() + 1 + self.margin, min=0.)
         an = torch.clamp_min(sn.detach() + self.margin, min=0.)
 
@@ -42,9 +45,9 @@ class SparseCircleLoss(nn.Module):
         logit_p = - ap * (sp - delta_p) * self.gamma
         logit_n = an * (sn - delta_n) * self.gamma
 
-        loss = self.soft_plus(torch.logsumexp(logit_n, dim=0) + torch.logsumexp(logit_p, dim=0))
+        loss = self.soft_plus(torch.logsumexp(logit_n, dim=1) + torch.logsumexp(logit_p, dim=1))
 
-        return loss
+        return loss.mean()
         
         
         
