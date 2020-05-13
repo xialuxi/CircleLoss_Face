@@ -20,13 +20,15 @@ class SparseCircleLoss(nn.Module):
         self.weight = nn.Parameter(torch.FloatTensor(self.class_num, self.emdsize))
         nn.init.xavier_uniform_(self.weight)
         self.relu = nn.ReLU()
+        self.use_cuda = False
 
 
     def forward(self, input: Tensor, label: Tensor) -> Tensor:
         similarity_matrix = nn.functional.linear(nn.functional.normalize(input), nn.functional.normalize(self.weight))
-
-        #one_hot = torch.zeros(similarity_matrix.size(), device='cuda')
-        one_hot = torch.zeros(similarity_matrix.size())
+        if self.use_cuda:
+            one_hot = torch.zeros(similarity_matrix.size(), device='cuda')
+        else:
+            one_hot = torch.zeros(similarity_matrix.size())
         one_hot.scatter_(1, label.view(-1, 1).long(), 1)
 
         one_hot = one_hot.type(dtype=torch.bool)
