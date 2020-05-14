@@ -55,7 +55,7 @@ if __name__ == "__main__":
     features = torch.rand(64, 128, requires_grad=True)
     label = torch.randint(high=9, size=(64,))
 
-    SparseCircle = SparseCircleLoss(m=0.25, batch_size=64, emdsize=128, class_num=10, gamma=64)
+    SparseCircle = SparseCircleLoss(m=0.25, emdsize=128, class_num=10, gamma=64)
     loss = SparseCircle(features , label)
 
     print(loss)
