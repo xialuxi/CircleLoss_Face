@@ -4,12 +4,11 @@ import torch
 from torch import nn, Tensor
 
 class SparseCircleLoss(nn.Module):
-    def __init__(self, m: float, batch_size: int, emdsize: int ,class_num: int, gamma: float) -> None:
+    def __init__(self, m: float, emdsize: int ,class_num: int, gamma: float) -> None:
         super(SparseCircleLoss, self).__init__()
         self.margin = m
         self.gamma = gamma
         self.soft_plus = nn.Softplus()
-        self.batch_size = batch_size
         self.class_num = class_num
         self.emdsize = emdsize
 
@@ -33,8 +32,8 @@ class SparseCircleLoss(nn.Module):
         mask = one_hot.logical_not()
         sn = similarity_matrix[mask]
 
-        sp = sp.view(self.batch_size, -1)
-        sn = sn.view(self.batch_size, -1)
+        sp = sp.view(input.size()[0], -1)
+        sn = sn.view(input.size()[0], -1)
 
         ap = torch.clamp_min(-sp.detach() + 1 + self.margin, min=0.)
         an = torch.clamp_min(sn.detach() + self.margin, min=0.)
