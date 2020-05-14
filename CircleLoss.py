@@ -14,7 +14,6 @@ class SparseCircleLoss(nn.Module):
 
         self.weight = nn.Parameter(torch.FloatTensor(self.class_num, self.emdsize))
         nn.init.xavier_uniform_(self.weight)
-        self.relu = nn.ReLU()
         self.use_cuda = False
 
 
